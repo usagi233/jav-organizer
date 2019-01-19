@@ -1,0 +1,25 @@
+{
+  "name": "jav-organizer",
+  "version": "1.0.0",
+  "description": "Rename JAV files to make them easier to choose from",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usagi233/jav-organizer.git"
+  },
+  "author": "usagi233",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/usagi233/jav-organizer/issues"
+  },
+  "homepage": "https://github.com/usagi233/jav-organizer#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "chrome-launcher": "^0.10.5",
+    "puppeteer-core": "^1.11.0",
+    "request": "^2.88.0"
+  }
+}
