@@ -10,7 +10,7 @@ const cheerio = require('cheerio');
 let devMode = false;
 let chrome,sitePage,libPage = null;
 let currentDirectory = null;
-let libAvaliable = false;
+let libAvaliable = true;
 
 init().then(probeDirectory);
 
@@ -38,16 +38,13 @@ async function init(){
     await libPage.goto("http://www.javlibrary.com/ja/");
     try{
         await libPage.waitFor('p[style="text-align:center"]',{timeout:10000});
-        libAvaliable = true;
-    }catch (err){
-        console.log("Javlibrary not avaliable, cencored movies will be ignored");
-    }
-    
-    if (libAvaliable){
         const agreeButton = await libPage.$('p[style="text-align:center"] input:nth-of-type(1)');
         await agreeButton.click();
         await libPage.select('div.languagemenu select','ja');
         await libPage.waitFor('input#idsearchbox');
+    }catch (err){
+        console.log("Javlibrary not avaliable, cencored movies will be ignored");
+        libAvaliable = false;
     }
 
     sitePage = await browser.newPage();
@@ -154,7 +151,7 @@ async function handle1pon(filename,extension){
     await sitePage.waitFor('div.movie-detail');
     const contents = await sitePage.content();
     const $ = cheerio.load(contents,{decodeEntities: false});
-    const title = getTitle($,'div.movie-overview h1.h1--dense');
+    const title = await getTitle($,'div.movie-overview h1.h1--dense');
     if (title == null) return;
     const details = $('div.movie-detail').find('span.spec-content');
     const castElement = details[1];
@@ -234,7 +231,7 @@ async function handleUncensored(props){
     let url = props.url(code);
     const $ = await gotoSite(url);
     if ($ == null) return;
-    const title = getTitle($,props.titleSelector);
+    const title = await getTitle($,props.titleSelector);
     if (title == null) return;
     const castContainer = $(props.castContainerSelector);
     const castElements = cheerio(castContainer).find(props.castElementSelector);
@@ -253,11 +250,11 @@ async function handleCensored(filename,extension,attempt){
     await libPage.waitForNavigation('networkidle2');
     const contents = await libPage.content();
     const $ = cheerio.load(contents,{decodeEntities: false});
-    let title = getTitle($,'h3.post-title a');
+    let title = await getTitle($,'h3.post-title a');
     if (title == null) return;
     title = title.replace(descriptor,'');
     let brand = $('div#video_maker a').text();
-    brand = brand.replace(/[\s\\\/:\"\'\<\>]/g,'');
+    brand = removeIllegalChar(brand);
     const castElements = $('div#video_cast').find('span.star');
     const cast = combineCastNames(castElements);
     const result = combineResults(brand,attempt,cast,title,extension);
@@ -313,14 +310,15 @@ function formatCensoredDescriptor(string){
 Assume title can be obtained by using one selector,
 also acts as an check on selector string and the webpage
 */
-function getTitle($,selector){
+async function getTitle($,selector){
     let title = $(selector).text();
     if (title == null || title == ''){
-        console.log("Selector or webpage error")
+        console.log("Selector or webpage error");
+        await sleep(2000);
         return null;
     }else{
         //Remove invalid symbols for file name
-        title = title.replace(/[\s\\\/:\"\'\<\>]/g,'');
+        title = removeIllegalChar(title);
         return title;
     }
 }
@@ -379,5 +377,13 @@ function renameFile(filename,extension,result){
             }
         })
     }
+}
+
+function removeIllegalChar(string){
+    return string.replace(/[\s\\\/\＼\／:：\?\!\？\！\"\'\<\>]/g,'');
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
