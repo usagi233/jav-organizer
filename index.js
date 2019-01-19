@@ -32,7 +32,6 @@ async function init(){
     const resp = await util.promisify(request)(`http://localhost:${debugPort}/json/version`);
     const {webSocketDebuggerUrl} = JSON.parse(resp.body);
     const browser = await puppeteer.connect({browserWSEndpoint: webSocketDebuggerUrl});
-    sitePage = await browser.newPage();
     
     libPage = await browser.newPage();
     await libPage.goto("http://www.javlibrary.com/ja/");
@@ -40,7 +39,9 @@ async function init(){
     const agreeButton = await libPage.$('p[style="text-align:center"] input:nth-of-type(1)');
     await agreeButton.click();
     await libPage.select('div.languagemenu select','ja');
-    await libPage.waitFor('input#idsearchbox')
+    await libPage.waitFor('input#idsearchbox');
+
+    sitePage = await browser.newPage();
 }
 
 async function probeDirectory(){
@@ -95,12 +96,12 @@ async function handleCaribpr(filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
-        "brand":"Caribbean PR",
+        "brand":"CaribbeanPR",
         "descriptorRE": /\d{6}_\d{3}[-_\w]*/,
         "codeRE": /\d{6}_\d{3}/,
         "url": (code) => {return `https://www.caribbeancompr.com/moviepages/${code}/index.html`},
         "titleSelector": 'div.video-detail h1',
-        "castContainerSelector": 'div.movie-info dl',
+        "castContainerSelector": 'div.movie-info dd',
         "castElementSelector": 'a'
     }
     await handleUncensored(props);
