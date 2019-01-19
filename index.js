@@ -8,7 +8,7 @@ const puppeteer = require('puppeteer-core');
 const cheerio = require('cheerio');
 
 let devMode = false;
-let chrome,page = null;
+let chrome,sitePage,libPage = null;
 let currentDirectory = null;
 
 init().then(probeDirectory);
@@ -32,7 +32,15 @@ async function init(){
     const resp = await util.promisify(request)(`http://localhost:${debugPort}/json/version`);
     const {webSocketDebuggerUrl} = JSON.parse(resp.body);
     const browser = await puppeteer.connect({browserWSEndpoint: webSocketDebuggerUrl});
-    page = await browser.newPage();
+    sitePage = await browser.newPage();
+    
+    libPage = await browser.newPage();
+    await libPage.goto("http://www.javlibrary.com/ja/");
+    await libPage.waitFor('p[style="text-align:center"]');
+    const agreeButton = await libPage.$('p[style="text-align:center"] input:nth-of-type(1)');
+    await agreeButton.click();
+    await libPage.select('div.languagemenu select','ja');
+    await libPage.waitFor('input#idsearchbox')
 }
 
 async function probeDirectory(){
@@ -69,7 +77,14 @@ async function probeDirectory(){
             }else if (upperFilename.includes("FC2")){
                 await handleFC2(filename,extension);
             }else{
-                console.log("Skipped: " + filename);
+                const regexp = /[A-Z]{2,5}[-_]?\d{2,5}\w*/;
+                let attempt = extractString(upperFilename,regexp);
+                if (attempt == null){
+                    console.log("Skipped: " + filename);
+                }else{
+                    await handleCensored(filename,extension,attempt);
+                }
+                
             }
         }
         chrome.kill();
@@ -116,14 +131,14 @@ async function handle1pon(filename,extension){
     const code = parseResult.code;
     const url = `https://www.1pondo.tv/movies/${code}`;
     console.log("URL: " + url);
-    const response = await page.goto(url,{waituntil:'networkidle2'});
+    const response = await sitePage.goto(url,{waituntil:'networkidle2'});
     if (!response.ok()){
         return console.log("HTTP Error");
     }
-    const moreButton = await page.$('div.movie-info button.see-more');
+    const moreButton = await sitePage.$('div.movie-info button.see-more');
     await moreButton.click();
-    await page.waitFor('div.movie-detail');
-    const contents = await page.content();
+    await sitePage.waitFor('div.movie-detail');
+    const contents = await sitePage.content();
     const $ = cheerio.load(contents,{decodeEntities: false});
     const title = getTitle($,'div.movie-overview h1.h1--dense');
     if (title == null) return;
@@ -203,22 +218,42 @@ async function handleUncensored(props){
     const descriptor = parseResult.descriptor;
     const code = parseResult.code;
     let url = props.url(code);
-    const $ = await gotoPage(url);
+    const $ = await gotoSite(url);
     if ($ == null) return;
     const title = getTitle($,props.titleSelector);
     if (title == null) return;
     const castContainer = $(props.castContainerSelector);
     const castElements = cheerio(castContainer).find(props.castElementSelector);
     const cast = combineCastNames(castElements);
-    const result = `[${props.brand}][${descriptor}][${cast}][${title}]${props.extension}`;
+    const result = combineResults(props.brand,descriptor,cast,title,props.extension);
     //console.log(result + "\n");
     renameFile(props.filename,props.extension,result);
+}
+
+async function handleCensored(filename,extension,attempt){
+    console.log("->Processing: " + filename);
+    const descriptor = formatCensoredDescriptor(attempt);
+    console.log("Descriptor: " + descriptor);
+    await libPage.type('input#idsearchbox',descriptor);
+    await libPage.keyboard.press('Enter');
+    await libPage.waitForNavigation('networkidle2');
+    const contents = await libPage.content();
+    const $ = cheerio.load(contents,{decodeEntities: false});
+    let title = getTitle($,'h3.post-title a');
+    if (title == null) return;
+    title = title.replace(descriptor,'');
+    let brand = $('div#video_maker a').text();
+    brand = brand.replace(/[\s\\\/:\"\'\<\>]/g,'');
+    const castElements = $('div#video_cast').find('span.star');
+    const cast = combineCastNames(castElements);
+    const result = combineResults(brand,attempt,cast,title,extension);
+    renameFile(filename,extension,result);
 }
 
 function extractString(string,regexp){
     const extract = string.match(regexp);
     if (extract == null){
-        console.log("Unable to extract from " + filename);
+        console.log("Unable to extract from " + string);
         return null;
     }else{
         return extract[0];
@@ -244,6 +279,22 @@ function parseFilename(filename,descriptorRE,codeRE){
     }
 }
 
+function formatCensoredDescriptor(string){
+    let descriptor = extractString(string,/[A-Z]{2,5}[-_]?\d{2,5}/);
+    if (descriptor.includes('-')){
+        return descriptor;
+    }
+    if (descriptor.includes('_')){
+        descriptor = descriptor.replace('_','-');
+    }
+    if (!descriptor.includes('-')){
+        const letters = extractString(descriptor,/[A-Z]{2,5}/);
+        const numbers = extractString(descriptor,/\d{2,5}/);
+        descriptor = letters + '-' + numbers;
+    }
+    return descriptor;
+}
+
 /*
 Assume title can be obtained by using one selector,
 also acts as an check on selector string and the webpage
@@ -254,7 +305,8 @@ function getTitle($,selector){
         console.log("Selector or webpage error")
         return null;
     }else{
-        title = title.replace(/\s/g,'');
+        //Remove invalid symbols for file name
+        title = title.replace(/[\s\\\/:\"\'\<\>]/g,'');
         return title;
     }
 }
@@ -279,10 +331,10 @@ function combineResults(brand,descriptor,cast,title,extension){
     return `[${brand}][${descriptor}][${cast}][${title}]${extension}`;
 }
 
-async function gotoPage(url){
+async function gotoSite(url){
     console.log("URL: " + url);
     try{
-        const response = await page.goto(url,{waituntil:'networkidle2'});
+        const response = await sitePage.goto(url,{waituntil:'networkidle2'});
         if (!response.ok){
             console.log("HTTP Error");
             return null;
@@ -292,7 +344,7 @@ async function gotoPage(url){
         return null;
     }
     try{
-        const contents = await page.content();
+        const contents = await sitePage.content();
         return cheerio.load(contents,{decodeEntities: false});
     }catch (err){
         console.log("Most likely page is redirected");
