@@ -10,6 +10,7 @@ const cheerio = require('cheerio');
 let devMode = false;
 let chrome,sitePage,libPage = null;
 let currentDirectory = null;
+let libAvaliable = false;
 
 init().then(probeDirectory);
 
@@ -35,11 +36,19 @@ async function init(){
     
     libPage = await browser.newPage();
     await libPage.goto("http://www.javlibrary.com/ja/");
-    await libPage.waitFor('p[style="text-align:center"]');
-    const agreeButton = await libPage.$('p[style="text-align:center"] input:nth-of-type(1)');
-    await agreeButton.click();
-    await libPage.select('div.languagemenu select','ja');
-    await libPage.waitFor('input#idsearchbox');
+    try{
+        await libPage.waitFor('p[style="text-align:center"]',{timeout:10000});
+        libAvaliable = true;
+    }catch (err){
+        console.log("Javlibrary not avaliable, cencored movies will be ignored");
+    }
+    
+    if (libAvaliable){
+        const agreeButton = await libPage.$('p[style="text-align:center"] input:nth-of-type(1)');
+        await agreeButton.click();
+        await libPage.select('div.languagemenu select','ja');
+        await libPage.waitFor('input#idsearchbox');
+    }
 
     sitePage = await browser.newPage();
 }
@@ -83,7 +92,11 @@ async function probeDirectory(){
                 if (attempt == null){
                     console.log("Skipped: " + filename);
                 }else{
-                    await handleCensored(filename,extension,attempt);
+                    if (libAvaliable){
+                        await handleCensored(filename,extension,attempt);
+                    }else{
+                        console.log("Skipped: " + filename);
+                    }
                 }
                 
             }
