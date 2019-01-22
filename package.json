@@ -2,9 +2,10 @@
   "name": "jav-organizer",
   "version": "1.0.0",
   "description": "Rename JAV files to make them easier to choose from",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "test": "node index.js dev"
+    "start": "node main.js",
+    "test": "node main.js dev"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "chrome-launcher": "^0.10.5",
+    "express": "^4.16.4",
     "puppeteer-core": "^1.11.0",
     "request": "^2.88.0"
   }
