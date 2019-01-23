@@ -74,7 +74,7 @@ async function init(){
     }
 
     sitePage = await browser.newPage();
-    console.log("Initilization complete");
+    console.log("Initialization complete");
 }
 
 async function probeDirectory(){
