@@ -35,16 +35,26 @@ async function init(){
         showChrome = true;
     }
     
-    let launchOptions = {
-        logLevel: 'info',
-        output: 'json'
+    let launchOptions = null;
+    if (showChrome){
+        launchOptions = {
+            logLevel: 'info',
+        }
+    }else{
+        launchOptions = {
+            logLevel: 'silent',
+            chromeFlags: ['--headless']
+        }
     }
     
-    if (!showChrome){
-        launchOptions.chromeFlags = ['--headless'];
+    console.log("Initializing");
+    try{
+        chrome = await chromeLauncher.launch(launchOptions);
+    }catch(err){
+        console.log("Failed to launch Chrome. Make sure you have Chrome installed");
+        process.exit(1);
     }
     
-    chrome = await chromeLauncher.launch(launchOptions);
     const debugPort = chrome.port;
     const resp = await util.promisify(request)(`http://localhost:${debugPort}/json/version`);
     const {webSocketDebuggerUrl} = JSON.parse(resp.body);
@@ -64,6 +74,7 @@ async function init(){
     }
 
     sitePage = await browser.newPage();
+    console.log("Initilization complete");
 }
 
 async function probeDirectory(){
@@ -114,6 +125,7 @@ async function probeDirectory(){
                 
             }
         }
+        console.log("Done")
         chrome.kill();
     });
 }
