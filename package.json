@@ -24,5 +24,6 @@
     "express": "^4.16.4",
     "puppeteer-core": "^1.11.0",
     "request": "^2.88.0"
-  }
+  },
+  "type": "module"
 }
