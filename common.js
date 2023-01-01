@@ -1,3 +1,5 @@
+import fs from 'fs'
+import path from 'path'
 import cheerio from 'cheerio'
 
 /*
@@ -33,11 +35,10 @@ function extractString(string,regexp){
 Assume title can be obtained by using one selector,
 also acts as an check on selector string and the webpage
 */
-async function getTitle($,selector){
+function getTitle($,selector){
     let title = $(selector).text();
     if (title == null || title == ''){
-        console.log("Selector or webpage error");
-        await sleep(2000);
+        throw new Error("GetTitle: Selector or webpage error");
         return null;
     }else{
         //Remove invalid symbols for file name
@@ -66,11 +67,11 @@ function combineResults(brand,descriptor,cast,title,extension){
     return `[${brand}][${descriptor}][${cast}][${title}]${extension}`;
 }
 
-function renameFile(filename,extension,result){
+function renameFile(dir, filename,extension,result){
     console.log("Result: " + result);
-    const oldPath = path.resolve(currentDirectory,filename+extension);
-    const newPath = path.resolve(currentDirectory,result);
-    if (oldPath == newPath){
+    const oldPath = path.resolve(dir,`${filename}${extension}`);
+    const newPath = path.resolve(dir, result);
+    if (oldPath === newPath){
         console.log("No operation");
     }else{
         fs.rename(oldPath,newPath, (err) => {

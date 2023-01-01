@@ -6,7 +6,7 @@ import cheerio from 'cheerio'
 import common from "./common.js";
 
 
-async function handleCaribpr(filename,extension){
+async function handleCaribpr(dir, filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
@@ -18,10 +18,10 @@ async function handleCaribpr(filename,extension){
         "castContainerSelector": 'div.movie-info dd',
         "castElementSelector": 'a'
     }
-    await handleUncensored(props);
+    await handleUncensored(dir, props);
 }
 
-async function handleCarib(filename,extension){
+async function handleCarib(dir, filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
@@ -33,10 +33,10 @@ async function handleCarib(filename,extension){
         "castContainerSelector": 'div.movie-info',
         "castElementSelector": 'span[itemprop="name"]'
     }
-    await handleUncensored(props);
+    await handleUncensored(dir, props);
 }
 
-async function handleHeyzo(filename,extension){
+async function handleHeyzo(dir, filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
@@ -48,10 +48,10 @@ async function handleHeyzo(filename,extension){
         "castContainerSelector": 'table.movieInfo tr.table-actor',
         "castElementSelector": 'a'
     }
-    await handleUncensored(props);
+    await handleUncensored(dir, props);
 }
 
-async function handleHeydouga(filename,extension){
+async function handleHeydouga(dir, filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
@@ -63,10 +63,10 @@ async function handleHeydouga(filename,extension){
         "castContainerSelector": 'div#movie-info ul:nth-child(2) li:nth-of-type(2) span:nth-child(2)',
         "castElementSelector": 'a'
     }
-    await handleUncensored(props);
+    await handleUncensored(dir, props);
 }
 
-async function handle10mu(filename,extension){
+async function handle10mu(dir, filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
@@ -78,10 +78,10 @@ async function handle10mu(filename,extension){
         "castContainerSelector": 'div.detail-info__meta dd:nth-of-type(4)',
         "castElementSelector": 'a'
     }
-    await handleUncensored(props);
+    await handleUncensored(dir, props);
 }
 
-async function handleFC2(filename,extension){
+async function handleFC2_market(dir, filename,extension){
     const props = {
         "filename": filename,
         "extension": extension,
@@ -93,10 +93,15 @@ async function handleFC2(filename,extension){
         "castContainerSelector": 'section.items_comment_sellerBox div div h4',
         "castElementSelector": 'h4 > a:first-child'
     }
-    await handleUncensored(props);
+    try {
+        await handleUncensored(dir, props);
+    }catch (err) {
+        console.log(err.message)
+        
+    }
 }
 
-async function handleUncensored(props){
+async function handleUncensored(dir, props){
     console.log(`->Processing ${props.brand}: ${props.filename}`);
     const parseResult = common.parseFilename(props.filename,props.descriptorRE,props.codeRE);
     if (parseResult == null) return;
@@ -109,15 +114,14 @@ async function handleUncensored(props){
     const $ = cheerio.load(contents,{decodeEntities: false});
 
     if ($ == null) return;
-    const title = await common.getTitle($,props.titleSelector);
+    const title = common.getTitle($,props.titleSelector);
     if (title == null) return;
     const castContainer = $(props.castContainerSelector);
     const castElements = cheerio(castContainer).find(props.castElementSelector);
     const cast = common.combineCastNames(castElements);
     const result = common.combineResults(props.brand,descriptor,cast,title,props.extension);
     
-    console.log(result + "\n");
-    //renameFile(props.filename,props.extension,result);
+    common.renameFile(dir, props.filename,props.extension,result);
 }
 
 
@@ -125,7 +129,7 @@ export default {
     handle10mu,
     handleCarib,
     handleCaribpr,
-    handleFC2,
+    handleFC2_market,
     handleHeydouga,
     handleHeyzo
 }
