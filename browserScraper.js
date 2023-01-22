@@ -20,7 +20,7 @@ async function init (launchOptions) {
     }
     
     const debugPort = chrome.port;
-    const resp = await util.promisify(request)(`http://localhost:${debugPort}/json/version`);
+    const resp = await util.promisify(request)(`http://127.0.0.1:${debugPort}/json/version`);
     const {webSocketDebuggerUrl} = JSON.parse(resp.body);
     const browser = await puppeteer.connect({browserWSEndpoint: webSocketDebuggerUrl});
     
