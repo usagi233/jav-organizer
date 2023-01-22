@@ -63,8 +63,21 @@ function combineCastNames(elements){
     return cast;
 }
 
+function removeIllegalChar(string){
+    return string.replace(/[\s\\\/\＼\／:：\?\!\？\！\"\'\<\>\*]/g,'');
+}
+
+function limitLength(string) {
+    if (string.length > 80) {
+        return string.substring(0, 80)
+    }else{
+        return string
+    }
+}
+
 function combineResults(brand,descriptor,cast,title,extension){
-    return `[${brand}][${descriptor}][${cast}][${title}]${extension}`;
+    let result = `[${brand}][${descriptor}][${cast}][${limitLength(title)}]${extension}`
+    return removeIllegalChar(result)
 }
 
 function renameFile(dir, filename,extension,result){
@@ -80,10 +93,6 @@ function renameFile(dir, filename,extension,result){
             }
         })
     }
-}
-
-function removeIllegalChar(string){
-    return string.replace(/[\s\\\/\＼\／:：\?\!\？\！\"\'\<\>\*]/g,'');
 }
 
 function sleep(ms) {
