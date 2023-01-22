@@ -20,7 +20,7 @@
   "dependencies": {
     "argparse": "^1.0.10",
     "cheerio": "^1.0.0-rc.2",
-    "chrome-launcher": "^0.10.5",
+    "chrome-launcher": "^0.15.1",
     "express": "^4.16.4",
     "puppeteer-core": "^1.11.0",
     "request": "^2.88.0"
