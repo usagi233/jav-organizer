@@ -1,7 +1,7 @@
 'use strict'
 import request from "request";
 import util from 'util'
-import chromeLauncher from 'chrome-launcher'
+import * as chromeLauncher from 'chrome-launcher'
 import puppeteer from 'puppeteer-core'
 import cheerio from 'cheerio'
 
@@ -28,12 +28,13 @@ async function init (launchOptions) {
     libPage = await browser.newPage();
     await libPage.goto("http://www.javlibrary.com/ja/");
     try{
-        await libPage.waitFor('p[style="text-align:center"]',{timeout:10000});
+        await libPage.waitForSelector('p[style="text-align:center"]',{timeout:10000});
         const agreeButton = await libPage.$('p[style="text-align:center"] input:nth-of-type(1)');
         await agreeButton.click();
         await libPage.goto("http://www.javlibrary.com/ja/")
-        await libPage.waitFor('input#idsearchbox');
+        await libPage.waitForSelector('input#idsearchbox');
     }catch (err){
+        console.log(err.message);
         console.log("Javlibrary not available, cencored movies will be ignored");
         libAvaliable = false;
     }
@@ -42,8 +43,9 @@ async function init (launchOptions) {
     await hubPage.setViewport({width: 1920, height: 1080})
     await hubPage.goto("https://fc2hub.com/");
     try {
-        await hubPage.waitFor('form#search', {timeout: 10000});
+        await hubPage.waitForSelector('form#search', {timeout: 10000});
     }catch (err) {
+        console.log(err.message);
         console.log("FC2 hub not available.")
     }
 
@@ -70,7 +72,7 @@ async function handle1pon(dir, filename,extension){
     }
     const moreButton = await sitePage.$('div.movie-info button.see-more');
     await moreButton.click();
-    await sitePage.waitFor('div.movie-detail');
+    await sitePage.waitForSelector('div.movie-detail');
     const contents = await sitePage.content();
     const $ = cheerio.load(contents,{decodeEntities: false});
     const title = await getTitle($,'div.movie-overview h1.h1--dense');

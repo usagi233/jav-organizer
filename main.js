@@ -16,18 +16,19 @@ init().then(probeDirectory);
 
 async function init(){
     const argParser = new ArgumentParser();
-    argParser.addArgument(
-        ['-s','--show'],
+    argParser.add_argument(
+        '-s','--show',
         {
             help: 'Show chrome'
         }
     )
-    argParser.addArgument(
-        ['-d','--directory'],{
+    argParser.add_argument(
+        '-d','--directory',
+        {
             help: 'Absolute path of directory'
         }
     )
-    args = argParser.parseArgs();
+    args = argParser.parse_args();
 
     let showChrome = false;
     if (args.show == "true"){
@@ -85,6 +86,7 @@ async function probeDirectory(){
                         await simpleScraper.handle10mu(currentDirectory, filename, extension);
                     }else if (upperFilename.includes("FC2")){
                         await browserScraper.handleFC2_hub(currentDirectory, filename, extension);
+                        //await simpleScraper.handleFC2_market(currentDirectory, filename, extension);
                     }else{
                         const regexp = /[A-Z]{2,5}[-_]?\d{2,5}\w*/;
                         let attempt = common.extractString(upperFilename,regexp);
